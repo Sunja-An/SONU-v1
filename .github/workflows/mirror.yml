@@ -1,0 +1,30 @@
+name: Mirror to Personal Repository for Vercel Deployment
+
+on:
+  push:
+    branches:
+      - main # main 브랜치에 푸시될 때마다 실행
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 전체 히스토리를 가져옵니다
+
+      - name: Push to Personal Repository
+        env:
+          DESTINATION_REPO: ${{ secrets.PERSONAL_REPO_URL }}
+        run: |
+          if [ -z "$DESTINATION_REPO" ]; then
+            echo "Error: PERSONAL_REPO_URL secret is not set."
+            echo "Please set up the repository secret 'PERSONAL_REPO_URL' with your personal repository URL including the PAT."
+            echo "Format: https://<USERNAME>:<PAT>@github.com/<USERNAME>/<REPO_NAME>.git"
+            exit 1
+          fi
+          
+          # 타겟 레포지토리를 원격으로 추가하고 강제 푸시합니다.
+          git remote add destination "$DESTINATION_REPO"
+          git push destination main:main -f
