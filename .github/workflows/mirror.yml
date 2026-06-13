@@ -16,15 +16,19 @@ jobs:
 
       - name: Push to Personal Repository
         env:
-          DESTINATION_REPO: ${{ secrets.GHCR_PAT }}
+          PAT: ${{ secrets.GHCR_PAT }}
         run: |
-          if [ -z "$DESTINATION_REPO" ]; then
+          if [ -z "$PAT" ]; then
             echo "Error: GHCR_PAT secret is not set."
-            echo "Please set up the repository secret 'GHCR_PAT' with your personal repository URL including the PAT."
-            echo "Format: https://<USERNAME>:<PAT>@github.com/<USERNAME>/<REPO_NAME>.git"
+            echo "Please set up the repository secret 'GHCR_PAT' with your Personal Access Token."
             exit 1
           fi
           
+          # github.actor는 이 액션을 실행한 유저(예: 본인 아이디)를 나타냅니다.
+          # 개인 계정에 포크/생성한 레포지토리 이름이 SONU-v1 이라고 가정합니다.
+          # 만약 이름이 다르다면 아래의 SONU-v1 부분을 수정해 주세요.
+          TARGET_URL="https://${{ github.actor }}:${PAT}@github.com/${{ github.actor }}/SONU-v1.git"
+          
           # 타겟 레포지토리를 원격으로 추가하고 강제 푸시합니다.
-          git remote add destination "$DESTINATION_REPO"
+          git remote add destination "$TARGET_URL"
           git push destination main:main -f
