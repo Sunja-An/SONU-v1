@@ -16,11 +16,11 @@ jobs:
 
       - name: Push to Personal Repository
         env:
-          DESTINATION_REPO: ${{ secrets.PERSONAL_REPO_URL }}
+          DESTINATION_REPO: ${{ secrets.GHCR_PAT }}
         run: |
           if [ -z "$DESTINATION_REPO" ]; then
-            echo "Error: PERSONAL_REPO_URL secret is not set."
-            echo "Please set up the repository secret 'PERSONAL_REPO_URL' with your personal repository URL including the PAT."
+            echo "Error: GHCR_PAT secret is not set."
+            echo "Please set up the repository secret 'GHCR_PAT' with your personal repository URL including the PAT."
             echo "Format: https://<USERNAME>:<PAT>@github.com/<USERNAME>/<REPO_NAME>.git"
             exit 1
           fi
