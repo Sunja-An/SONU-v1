@@ -1,0 +1,355 @@
+{
+  "info": {
+    "name": "SONU - Valorant Tournament Platform",
+    "_postman_id": "sonu-tournament-api-v2",
+    "description": "발로란트 커스텀 대회 플랫폼 API\n\n**인증 방식**: Discord OAuth2 → JWT Bearer Token\n\n**변수 설정**:\n- `base_url`: http://localhost:8080\n- `token`: Discord 로그인 후 발급된 access_token\n- `tournament_id`: 생성된 대회 ID\n- `room_id`: 생성된 경매방 ID",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8080", "type": "string" },
+    { "key": "token", "value": "", "type": "string", "description": "Discord 로그인 후 발급된 JWT access_token" },
+    { "key": "tournament_id", "value": "1", "type": "string" },
+    { "key": "room_id", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "🟢 Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/health", "host": ["{{base_url}}"], "path": ["health"] },
+            "description": "서버 상태 확인"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔐 Auth",
+      "item": [
+        {
+          "name": "회원가입",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/v1/auth/register", "host": ["{{base_url}}"], "path": ["api","v1","auth","register"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"riot_id\": \"SonuDev#KR1\",\n  \"email\": \"dev@sonu.gg\",\n  \"password\": \"password123\",\n  \"nickname\": \"소누개발자\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "이메일/비밀번호 회원가입\n- riot_id: 3~30자\n- email: 이메일 형식\n- password: 8~72자\n- nickname: 2~20자"
+          }
+        },
+        {
+          "name": "로그인",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.access_token) {",
+                  "  pm.collectionVariables.set('token', res.data.access_token);",
+                  "  console.log('✅ Token saved');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/v1/auth/login", "host": ["{{base_url}}"], "path": ["api","v1","auth","login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"dev@sonu.gg\",\n  \"password\": \"password123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "이메일/비밀번호 로그인\n\n✅ 응답의 access_token이 자동으로 컬렉션 변수 `token`에 저장됩니다."
+          }
+        },
+        {
+          "name": "Discord 로그인 URL 요청",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/v1/auth/discord", "host": ["{{base_url}}"], "path": ["api","v1","auth","discord"] },
+            "description": "Discord OAuth2 인증 URL을 반환합니다.\n응답의 auth_url로 사용자를 이동시키면 Discord 로그인 페이지가 열립니다."
+          }
+        },
+        {
+          "name": "Discord OAuth2 콜백",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.access_token) {",
+                  "  pm.collectionVariables.set('token', res.data.access_token);",
+                  "  console.log('✅ Discord token saved');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/discord/callback?code=DISCORD_CODE&state=OAUTH_STATE",
+              "host": ["{{base_url}}"],
+              "path": ["api","v1","auth","discord","callback"],
+              "query": [
+                { "key": "code", "value": "DISCORD_CODE", "description": "Discord 인증 코드" },
+                { "key": "state", "value": "OAUTH_STATE", "description": "CSRF 방지 state" }
+              ]
+            },
+            "description": "Discord OAuth2 인증 완료 후 자동 리다이렉트 엔드포인트.\n실제로는 브라우저가 자동 호출합니다.\n\n✅ 성공 시 access_token이 변수 `token`에 자동 저장됩니다."
+          }
+        }
+      ]
+    },
+    {
+      "name": "👤 Users",
+      "description": "모든 요청에 Authorization: Bearer {{token}} 필요",
+      "item": [
+        {
+          "name": "내 프로필 조회",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/v1/users/me", "host": ["{{base_url}}"], "path": ["api","v1","users","me"] },
+            "description": "JWT 토큰으로 인증된 현재 유저의 프로필 반환"
+          }
+        },
+        {
+          "name": "포인트 잔고 충전",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/api/v1/users/me/balance", "host": ["{{base_url}}"], "path": ["api","v1","users","me","balance"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 50000\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "경매 포인트 잔고 충전\n- amount: 1,000 ~ 10,000,000"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🎮 Players",
+      "description": "대회 참가자 프로필 관리 (Redis 직접 저장)",
+      "item": [
+        {
+          "name": "전체 참가자 목록 조회",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/v1/players", "host": ["{{base_url}}"], "path": ["api","v1","players"] },
+            "description": "Redis Set 인덱스 + Pipeline 배치 조회로 전체 참가자 반환\n\n인증 불필요 (공개 API)"
+          }
+        },
+        {
+          "name": "내 플레이어 프로필 저장",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/api/v1/players/profile", "host": ["{{base_url}}"], "path": ["api","v1","players","profile"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nickname\": \"소누개발자\",\n  \"riot_id\": \"SonuDev#KR1\",\n  \"rank\": \"DIAMOND\",\n  \"tier\": 2,\n  \"main_agent\": \"Jett\",\n  \"avatar_url\": \"https://cdn.discordapp.com/avatars/123456789/abc.png\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Discord 로그인 유저의 플레이어 프로필을 Redis에 저장\ndiscord_id는 JWT에서 자동 추출됩니다.\n\n- rank: IRON / BRONZE / SILVER / GOLD / PLATINUM / DIAMOND / ASCENDANT / IMMORTAL / RADIANT\n- tier: 1(I) / 2(II) / 3(III)\n- main_agent: 메인 에이전트 이름"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🏆 Tournaments",
+      "description": "대회 경매 관리\n모든 요청에 Authorization: Bearer {{token}} 필요",
+      "item": [
+        {
+          "name": "대회 생성",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.id) {",
+                  "  pm.collectionVariables.set('tournament_id', String(res.data.id));",
+                  "  console.log('✅ Tournament ID saved:', res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/api/v1/tournaments", "host": ["{{base_url}}"], "path": ["api","v1","tournaments"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"SONU 발로란트 커스텀 #1\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "새 대회 생성\n\n✅ 응답의 id가 자동으로 변수 `tournament_id`에 저장됩니다."
+          }
+        },
+        {
+          "name": "대회 상태 조회",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/v1/tournaments/{{tournament_id}}", "host": ["{{base_url}}"], "path": ["api","v1","tournaments","{{tournament_id}}"] },
+            "description": "대회 정보와 전체 참가자 목록 반환"
+          }
+        },
+        {
+          "name": "참가자 추가",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/api/v1/tournaments/{{tournament_id}}/participants", "host": ["{{base_url}}"], "path": ["api","v1","tournaments","{{tournament_id}}","participants"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": 2,\n  \"role\": \"MEMBER\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "대회에 참가자 추가\n- role: LEADER (팀장) 또는 MEMBER (팀원)"
+          }
+        },
+        {
+          "name": "셔플 시작 (운영자)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/v1/tournaments/{{tournament_id}}/shuffle", "host": ["{{base_url}}"], "path": ["api","v1","tournaments","{{tournament_id}}","shuffle"] },
+            "description": "팀원 입찰 순서 랜덤 셔플\n상태: WAITING → BIDDING\n\n운영자 권한 필요"
+          }
+        },
+        {
+          "name": "다음 경매 시작 (운영자)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/v1/tournaments/{{tournament_id}}/auction/next", "host": ["{{base_url}}"], "path": ["api","v1","tournaments","{{tournament_id}}","auction","next"] },
+            "description": "다음 순번 팀원에 대한 경매 시작\n\n운영자 권한 필요"
+          }
+        },
+        {
+          "name": "입찰 (팀장)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/api/v1/tournaments/{{tournament_id}}/auction/bids", "host": ["{{base_url}}"], "path": ["api","v1","tournaments","{{tournament_id}}","auction","bids"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 30000\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "현재 경매 중인 팀원에게 입찰\n\n팀장(LEADER) 권한 필요\n현재 최고 입찰가보다 높아야 합니다."
+          }
+        },
+        {
+          "name": "경매 낙찰/유찰 처리 (운영자)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/api/v1/tournaments/{{tournament_id}}/auction/finalize", "host": ["{{base_url}}"], "path": ["api","v1","tournaments","{{tournament_id}}","auction","finalize"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"won\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "현재 경매 낙찰/유찰 처리\n\n- won: true  → 낙찰 (최고 입찰 팀장에게 팀원 배정, 잔고 차감)\n- won: false → 유찰 (2라운드 재경매 대상으로 전환)\n\n운영자 권한 필요"
+          }
+        }
+      ]
+    },
+    {
+      "name": "⚙️ Admin",
+      "description": "어드민 전용 경매방 제어 API\nAuthorization: Bearer {{token}} + role=ADMIN 필요",
+      "item": [
+        {
+          "name": "경매방 활성화",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.id) {",
+                  "  pm.collectionVariables.set('room_id', res.data.id);",
+                  "  console.log('✅ Room ID saved:', res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/api/v1/admin/auction/start", "host": ["{{base_url}}"], "path": ["api","v1","admin","auction","start"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tournament_id\": \"{{tournament_id}}\",\n  \"start_price\": 10000\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "경매방 생성 및 활성화\n\n🔒 분산 락: 동일 대회에 동시 요청이 와도 경매방은 단 하나만 생성됩니다.\n⏰ 경매방은 30분 후 Redis TTL로 자동 만료됩니다.\n\n409 응답: 이미 경매 시작이 진행 중\n\n✅ 응답의 id가 자동으로 변수 `room_id`에 저장됩니다."
+          }
+        },
+        {
+          "name": "경매방 상태 조회",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/v1/admin/auction/rooms/{{room_id}}", "host": ["{{base_url}}"], "path": ["api","v1","admin","auction","rooms","{{room_id}}"] },
+            "description": "room_id로 경매방 현재 상태 조회\n30분 TTL 만료 후 404 반환"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔌 WebSocket",
+      "item": [
+        {
+          "name": "대회 실시간 연결 (WS)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/ws/tournaments/{{tournament_id}}", "host": ["{{base_url}}"], "path": ["ws","tournaments","{{tournament_id}}"] },
+            "description": "대회 실시간 이벤트 수신을 위한 WebSocket 연결\n\n⚠️ Postman에서 테스트하려면 New > WebSocket Request 사용\nURL: ws://localhost:8080/ws/tournaments/{{tournament_id}}\n\n- JWT 없이: 관전자 모드 (읽기 전용)\n- JWT 포함: Authorization 헤더 추가 → 역할 식별\n\n수신 이벤트 예시:\n{\"event\": \"bid_placed\", \"data\": {\"amount\": 30000, \"leader_id\": 1}}\n{\"event\": \"auction_finalized\", \"data\": {\"winner_id\": 1, \"final_price\": 30000}}"
+          }
+        }
+      ]
+    }
+  ]
+}

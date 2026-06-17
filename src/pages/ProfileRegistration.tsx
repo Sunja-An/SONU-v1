@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { Shield, Crosshair, Eye, Cloud, ChevronDown, ArrowRight, ArrowLeft, Check } from 'lucide-react';
+import { Shield, Crosshair, Eye, Cloud, ArrowRight, ArrowLeft, Check, Loader2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -12,17 +12,28 @@ const VALORANT_ROLES = [
   { id: 'controller', name: 'コントローラー', icon: Cloud, color: '#8A2BE2' }
 ];
 
-const MOCK_AGENTS = ['Jett', 'Reyna', 'Raze', 'Phoenix', 'Omen', 'Viper', 'Astra', 'Sova', 'Fade', 'Breach', 'Killjoy', 'Cypher', 'Chamber'];
-
 export function ProfileRegistration() {
   const { user, registeredProfile, setRegisteredProfile } = useAuthStore();
   const navigate = useNavigate();
 
+  const [nickname, setNickname] = useState(user?.nickname || user?.username || 'UnknownAgent');
+  const [riotId, setRiotId] = useState('');
+  const [rank, setRank] = useState('GOLD');
+  const [tier, setTier] = useState(2);
   const [intro, setIntro] = useState('');
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [selectedAgents, setSelectedAgents] = useState<{name: string, iconUrl: string}[]>([]);
   const [agentList, setAgentList] = useState<{id: string, name: string, iconUrl: string}[]>([]);
   const [step, setStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Sync nickname when user session loads
+  useEffect(() => {
+    if (user) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setNickname(user.nickname || user.username);
+    }
+  }, [user]);
 
   // Fetch agents from Valorant API
   useEffect(() => {
@@ -30,12 +41,12 @@ export function ProfileRegistration() {
       .then(res => res.json())
       .then(data => {
         if (data.status === 200) {
-          const agents = data.data.map((a: any) => ({
+          const agents = (data.data as Array<{ uuid: string; displayName: string; displayIcon: string }>).map((a) => ({
             id: a.uuid,
             name: a.displayName,
             iconUrl: a.displayIcon
           }));
-          agents.sort((a: any, b: any) => a.name.localeCompare(b.name));
+          agents.sort((a, b) => a.name.localeCompare(b.name));
           setAgentList(agents);
         }
       })
@@ -45,27 +56,32 @@ export function ProfileRegistration() {
   // Prefill data if user is returning to edit
   useEffect(() => {
     if (registeredProfile) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIntro(registeredProfile.intro);
       setSelectedRoles(registeredProfile.roles || []);
       setSelectedAgents(registeredProfile.agents || []);
     }
   }, [registeredProfile]);
 
-  // If no user, fallback to mock data or handle redirect. Handled simply here for demo.
   const displayUser = user || {
     username: 'UnknownAgent',
     discriminator: '0000',
     avatarUrl: 'https://cdn.discordapp.com/embed/avatars/0.png'
   };
 
-  const handleAgentSelect = (index: number, agent: string) => {
-    const newAgents = [...selectedAgents];
-    newAgents[index] = agent;
-    setSelectedAgents(newAgents);
+  const toggleAgent = (agent: { name: string; iconUrl: string }) => {
+    const isSelected = selectedAgents.some(a => a.name === agent.name);
+    if (isSelected) {
+      setSelectedAgents(selectedAgents.filter(a => a.name !== agent.name));
+    } else {
+      if (selectedAgents.length < 3) {
+        setSelectedAgents([...selectedAgents, agent]);
+      }
+    }
   };
 
   const canGoNext = () => {
-    if (step === 1) return true;
+    if (step === 1) return nickname.trim().length > 0 && riotId.trim().length > 0 && riotId.includes('#');
     if (step === 2) return selectedRoles.length > 0;
     if (step === 3) return selectedAgents.length > 0 && selectedAgents.length <= 3;
     if (step === 4) return intro.trim().length > 0;
@@ -80,25 +96,43 @@ export function ProfileRegistration() {
     if (step > 1) setStep(s => s - 1);
   };
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (!canGoNext() || selectedRoles.length === 0) return;
+    setIsSubmitting(true);
     
-    // Save to global store
-    setRegisteredProfile({
-      roles: selectedRoles,
-      agents: selectedAgents,
-      intro: intro.trim()
-    });
+    try {
+      const { savePlayerProfile } = await import('../api/players');
+      await savePlayerProfile({
+        nickname: nickname.trim(),
+        riot_id: riotId.trim(),
+        rank: rank,
+        tier: tier,
+        main_agent: selectedAgents[0]?.name || 'Jett',
+        avatar_url: displayUser.avatarUrl,
+      });
 
-    confetti({
-      particleCount: 150,
-      spread: 80,
-      origin: { y: 0.6 },
-      colors: ['#FF4655', '#00FF9D', '#5865F2', '#f1f5f9']
-    });
-    
-    // Navigate to preview page
-    navigate('/jp/profile');
+      // Save to global store
+      setRegisteredProfile({
+        roles: selectedRoles,
+        agents: selectedAgents,
+        intro: intro.trim()
+      });
+
+      confetti({
+        particleCount: 150,
+        spread: 80,
+        origin: { y: 0.6 },
+        colors: ['#FF4655', '#00FF9D', '#5865F2', '#f1f5f9']
+      });
+      
+      // Navigate to preview page
+      navigate('/jp/profile');
+    } catch (err) {
+      console.error('Failed to register player profile:', err);
+      alert('Failed to register profile on the server. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const pageVariants = {
@@ -106,7 +140,7 @@ export function ProfileRegistration() {
     in: { opacity: 1, x: 0 },
     out: { opacity: 0, x: -30 }
   };
-  const pageTransition = { type: 'tween', ease: 'anticipate', duration: 0.4 };
+  const pageTransition = { type: 'tween' as const, ease: 'anticipate' as const, duration: 0.4 };
 
   const stepTitles = [
     'アカウント確認',
@@ -160,7 +194,7 @@ export function ProfileRegistration() {
               <motion.div key="step1" variants={pageVariants} initial="initial" animate="in" exit="out" transition={pageTransition} className="w-full">
                 <section className="bg-[#0f1117] border border-white/5 p-8 relative shadow-2xl">
                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#5865F2] to-transparent opacity-50" />
-                  <p className="text-slate-400 mb-8 tracking-wider">Discord連携が完了しました。アカウント情報が正しいか確認してください。</p>
+                  <p className="text-slate-400 mb-8 tracking-wider">Discord連携が完了しました。アカウント情報およびRiot IDを確認・入力してください。</p>
                   
                   <div className="flex items-center gap-8 bg-black/40 p-6 border border-white/5">
                     <img 
@@ -174,6 +208,52 @@ export function ProfileRegistration() {
                       <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 bg-[#5865F2]/10 border border-[#5865F2]/30 text-[#5865F2] text-xs font-bold tracking-wider uppercase rounded">
                         <Check size={14} /> Discord 連携済み
                       </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-white/5 pt-6">
+                    <div>
+                      <label className="block text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">ニックネーム</label>
+                      <input 
+                        type="text" 
+                        value={nickname} 
+                        onChange={(e) => setNickname(e.target.value)}
+                        className="w-full bg-black/40 border border-white/10 p-3 text-white focus:outline-none focus:border-white/30"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">Riot ID (Name#Tag)</label>
+                      <input 
+                        type="text" 
+                        value={riotId} 
+                        onChange={(e) => setRiotId(e.target.value)}
+                        placeholder="Player#KR1"
+                        className="w-full bg-black/40 border border-white/10 p-3 text-white focus:outline-none focus:border-white/30 uppercase"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">現在のランク</label>
+                      <select 
+                        value={rank} 
+                        onChange={(e) => setRank(e.target.value)}
+                        className="w-full bg-black/40 border border-white/10 p-3 text-white focus:outline-none focus:border-white/30"
+                      >
+                        {['IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'DIAMOND', 'ASCENDANT', 'IMMORTAL', 'RADIANT'].map(r => (
+                          <option key={r} value={r} className="bg-[#0f1117]">{r}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">ティア</label>
+                      <select 
+                        value={tier} 
+                        onChange={(e) => setTier(Number(e.target.value))}
+                        className="w-full bg-black/40 border border-white/10 p-3 text-white focus:outline-none focus:border-white/30"
+                      >
+                        <option value={1} className="bg-[#0f1117]">1 (I)</option>
+                        <option value={2} className="bg-[#0f1117]">2 (II)</option>
+                        <option value={3} className="bg-[#0f1117]">3 (III)</option>
+                      </select>
                     </div>
                   </div>
                 </section>
@@ -238,20 +318,14 @@ export function ProfileRegistration() {
                     {agentList.map(agent => {
                       const isSelected = selectedAgents.some(a => a.name === agent.name);
                       
-                      const toggleAgent = () => {
-                        if (isSelected) {
-                          setSelectedAgents(selectedAgents.filter(a => a.name !== agent.name));
-                        } else {
-                          if (selectedAgents.length < 3) {
-                            setSelectedAgents([...selectedAgents, { name: agent.name, iconUrl: agent.iconUrl }]);
-                          }
-                        }
+                      const handleAgentClick = () => {
+                        toggleAgent({ name: agent.name, iconUrl: agent.iconUrl });
                       };
 
                       return (
                         <button
                           key={agent.id}
-                          onClick={toggleAgent}
+                          onClick={handleAgentClick}
                           className={`relative aspect-square border-2 transition-all overflow-hidden ${
                             isSelected 
                               ? 'border-[#00FF9D] scale-[1.05] shadow-[0_0_15px_rgba(0,255,157,0.4)] z-10' 
@@ -294,7 +368,7 @@ export function ProfileRegistration() {
                   
                   <textarea
                     className="w-full h-48 bg-black/40 border border-white/10 p-6 text-base leading-relaxed resize-none focus:outline-none focus:border-white/50 transition-colors shadow-inner"
-                    placeholder="例：スモークを中心にプレイしています。過去最高ランクはアセンダント3です。IGLの経験もあります！"
+                    placeholder="例：スモークを中心にプレイしています。過去最高ランクはアセンダント3です。IGL의 경험도 있습니다!"
                     value={intro}
                     maxLength={500}
                     onChange={(e) => setIntro(e.target.value)}
@@ -310,9 +384,9 @@ export function ProfileRegistration() {
         <div className="mt-8 flex items-center justify-between border-t border-white/5 pt-8">
           <button
             onClick={prevStep}
-            disabled={step === 1}
+            disabled={step === 1 || isSubmitting}
             className={`flex items-center gap-2 px-6 py-3 font-bold tracking-widest uppercase transition-colors ${
-              step === 1 ? 'text-transparent pointer-events-none' : 'text-slate-400 hover:text-white'
+              step === 1 ? 'text-transparent pointer-events-none' : 'text-slate-400 hover:text-white disabled:opacity-50'
             }`}
           >
             <ArrowLeft size={18} /> 戻る
@@ -333,14 +407,19 @@ export function ProfileRegistration() {
           ) : (
             <button 
               onClick={handleRegister}
-              disabled={!canGoNext()}
+              disabled={!canGoNext() || isSubmitting}
               className={`flex items-center gap-2 px-10 py-4 font-black tracking-widest uppercase transition-all ${
-                canGoNext()
+                canGoNext() && !isSubmitting
                   ? 'bg-[#FF4655] text-white hover:bg-[#ff5a68] shadow-[0_0_20px_rgba(255,70,85,0.4)]'
                   : 'bg-[#FF4655]/20 text-[#FF4655]/50 cursor-not-allowed'
               }`}
             >
-              <Check size={18} /> 登録を完了する
+              {isSubmitting ? (
+                <Loader2 className="animate-spin" size={18} />
+              ) : (
+                <Check size={18} />
+              )}
+              {isSubmitting ? '登録中...' : '登録を完了する'}
             </button>
           )}
         </div>

@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { ChevronRight, ChevronLeft, Check, Loader2 } from 'lucide-react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { ChevronRight, ChevronLeft, Check, Loader2, AlertCircle } from 'lucide-react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { SuccessAnimation } from './SuccessAnimation';
 import { fetchValorantData, type ValorantAgent, type ValorantRole } from '../../api/valorant';
+import { useAuthStore } from '../../store/authStore';
+import { savePlayerProfile, addTournamentParticipant } from '../../api/players';
 
 const TIERS = [
   'Iron', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Ascendant', 'Immortal', 'Radiant'
@@ -11,10 +13,14 @@ const TIERS = [
 export function ApplicationForm() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { tournamentId } = useParams();
+  const { user, isAuthenticated } = useAuthStore();
   const lang = location.pathname.startsWith('/jp') ? 'jp' : 'kr';
   
   const [step, setStep] = useState(1);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   
   const [valorantData, setValorantData] = useState<{agents: ValorantAgent[], roles: ValorantRole[]}>({ agents: [], roles: [] });
   const [isLoading, setIsLoading] = useState(true);
@@ -22,7 +28,7 @@ export function ApplicationForm() {
   const [formData, setFormData] = useState({
     isLeader: false,
     riotId: '',
-    discordId: '', // Represents Discord Name / Profile Identifier for now
+    discordId: user?.username || '', // Auto-fill if user exists
     role: '', // role uuid
     agents: [] as string[], // array of agent uuids
     currentTier: '',
@@ -30,7 +36,16 @@ export function ApplicationForm() {
     introduction: ''
   });
 
+  // Keep Discord ID updated if user loads later
   useEffect(() => {
+    if (user) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setFormData(prev => ({ ...prev, discordId: user.username }));
+    }
+  }, [user]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsLoading(true);
     fetchValorantData(lang).then(data => {
       setValorantData(data);
@@ -47,9 +62,50 @@ export function ApplicationForm() {
 
   const handlePrev = () => setStep(prev => prev - 1);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitted(true);
+    if (!tournamentId) {
+      setSubmitError('Invalid Tournament ID');
+      return;
+    }
+    if (!user) {
+      setSubmitError('You must be logged in to apply for this tournament. Please log in with Discord first.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const rankUpper = (formData.currentTier || 'GOLD').toUpperCase();
+      const firstAgentUuid = formData.agents[0];
+      const mainAgentName = valorantData.agents.find(a => a.uuid === firstAgentUuid)?.displayName || 'Jett';
+
+      // 1. Save player profile details to Redis
+      await savePlayerProfile({
+        nickname: user.nickname || user.username || 'UnknownAgent',
+        riot_id: formData.riotId,
+        rank: rankUpper,
+        tier: 1, // Default tier
+        main_agent: mainAgentName,
+        avatar_url: user.avatarUrl || 'https://cdn.discordapp.com/embed/avatars/0.png',
+      });
+
+      // 2. Add to tournament participants
+      const participantRole = formData.isLeader ? 'LEADER' : 'MEMBER';
+      await addTournamentParticipant(tournamentId, {
+        user_id: user.id,
+        role: participantRole,
+      });
+
+      setIsSubmitted(true);
+    } catch (err: unknown) {
+      console.error('Failed to submit tournament application:', err);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setSubmitError((err as any).response?.data?.message || 'Failed to submit application. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const toggleAgent = (agentUuid: string) => {
@@ -107,6 +163,20 @@ export function ApplicationForm() {
         {step === 4 && '4. Review & Submit'}
       </h2>
 
+      {submitError && (
+        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 text-red-400 text-sm flex items-center gap-3">
+          <AlertCircle size={18} className="shrink-0" />
+          <span>{submitError}</span>
+        </div>
+      )}
+
+      {!isAuthenticated && step === 1 && (
+        <div className="mb-6 p-4 bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-sm flex items-center gap-3">
+          <AlertCircle size={18} className="shrink-0" />
+          <span>You are not logged in. Please log in with Discord first to be able to apply.</span>
+        </div>
+      )}
+
       <div className="space-y-8 min-h-[400px]">
         {/* STEP 1: BASIC INFO */}
         {step === 1 && (
@@ -152,7 +222,7 @@ export function ApplicationForm() {
             </div>
             <div>
               <label className="block text-sm font-bold text-gray-400 uppercase mb-2">Discord Name / ID</label>
-              <p className="text-xs text-gray-500 mb-2">Discord profile integration will be supported soon via OAuth2. For now, enter your Discord Name.</p>
+              <p className="text-xs text-gray-500 mb-2">Discord ID is loaded from OAuth2 dynamically. You can edit this field if needed.</p>
               <input
                 type="text"
                 value={formData.discordId}
@@ -347,7 +417,8 @@ export function ApplicationForm() {
         {step > 1 ? (
           <button
             onClick={handlePrev}
-            className="flex items-center text-gray-400 hover:text-white font-bold uppercase text-sm transition-colors"
+            disabled={isSubmitting}
+            className="flex items-center text-gray-400 hover:text-white font-bold uppercase text-sm transition-colors disabled:opacity-50"
           >
             <ChevronLeft size={16} className="mr-1" /> Back
           </button>
@@ -371,10 +442,15 @@ export function ApplicationForm() {
         ) : (
           <button
             onClick={handleSubmit}
-            className="flex items-center bg-[#FF4655] text-white px-8 py-3 font-bold uppercase text-sm hover:bg-white hover:text-black transition-all"
+            disabled={isSubmitting || !user}
+            className="flex items-center bg-[#FF4655] text-white px-8 py-3 font-bold uppercase text-sm hover:bg-white hover:text-black transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ clipPath: 'polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)' }}
           >
-            Submit Application <Check size={16} className="ml-2" />
+            {isSubmitting ? (
+              <>Submitting <Loader2 className="animate-spin ml-2 w-4 h-4" /></>
+            ) : (
+              <>Submit Application <Check size={16} className="ml-2" /></>
+            )}
           </button>
         )}
       </div>

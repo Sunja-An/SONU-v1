@@ -17,7 +17,8 @@ export function LandingPage() {
 
   const handleDiscordLogin = () => {
     const code = inviteCode.trim();
-    if (!['SONU2026', 'LEADER2026', 'AUCTION2026'].includes(code)) {
+    // 보안을 위해 기존 코드를 변경했습니다. 필요시 변경해 사용하세요.
+    if (!['SONU_PLAYER_99X', 'SONU_LEADER_77Y', 'SONU_AUCTION_55Z'].includes(code)) {
       setError(true);
       return;
     }
@@ -30,17 +31,17 @@ export function LandingPage() {
       username: 'ShadowAgent',
       discriminator: '0001',
       avatarUrl: 'https://cdn.discordapp.com/embed/avatars/0.png'
-    });
+    }, 'mock_token');
 
     setIsAnimatingOut(true);
     
     // Wait for exit animation to complete before navigating
     setTimeout(() => {
-      if (code === 'SONU2026') {
+      if (code === 'SONU_PLAYER_99X') {
         navigate(`/${lang}/profile`); // 등록된 유저 정보 페이지
-      } else if (code === 'LEADER2026') {
+      } else if (code === 'SONU_LEADER_77Y') {
         navigate(`/${lang}/leader-register`); // 팀장 등록 페이지
-      } else if (code === 'AUCTION2026') {
+      } else if (code === 'SONU_AUCTION_55Z') {
         navigate(`/${lang}/auction`); // 경매장 페이지
       }
     }, 1000);

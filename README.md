@@ -43,13 +43,6 @@ bun install
 bun run dev
 ```
 
-### Routing Structure
-코드 입력 분기에 따른 주요 라우팅 경로는 다음과 같습니다.
-- `SONU2026`: 일반 플레이어 정보 페이지 접근
-- `LEADER2026`: 팀장 전용 페이지 접근
-- `AUCTION2026`: 메인 경매장(Auction Room) 접근
-- `/admin`: 운영자(Admin) 전용 대시보드
-
 ## 🛠️ Vercel Deployment & GitHub Action
 조직(Organization) 레포지토리의 Vercel 무료 배포 제한을 우회하기 위해 **개인 레포지토리 미러링(Mirroring)** GitHub Action이 설정되어 있습니다.
 

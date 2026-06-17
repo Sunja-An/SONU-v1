@@ -68,8 +68,17 @@ function AdminRoutes() {
   );
 }
 
+import { useEffect } from 'react';
+import { useAuthStore } from './store/authStore';
+
 /* ── Root ────────────────────────────────────── */
 export function App() {
+  const initializeAuth = useAuthStore((state) => state.initialize);
+
+  useEffect(() => {
+    initializeAuth();
+  }, [initializeAuth]);
+
   return (
     <BrowserRouter>
       <Routes>
