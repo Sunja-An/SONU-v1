@@ -4,6 +4,7 @@ import { useAuthStore } from '../store/authStore';
 import { Shield, Crosshair, Eye, Cloud, ArrowRight, ArrowLeft, Check, Loader2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
+import { savePlayerProfile } from '../api/players';
 
 const VALORANT_ROLES = [
   { id: 'duelist', name: 'デュエリスト', icon: Crosshair, color: '#FF4655' },
@@ -101,7 +102,6 @@ export function ProfileRegistration() {
     setIsSubmitting(true);
     
     try {
-      const { savePlayerProfile } = await import('../api/players');
       await savePlayerProfile({
         nickname: nickname.trim(),
         riot_id: riotId.trim(),

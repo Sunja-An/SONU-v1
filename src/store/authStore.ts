@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { getMe } from '../api/auth';
 
 export interface UserProfile {
   id: string | number;
@@ -51,8 +52,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
     set({ isLoading: true });
     try {
-      // Dynamic import to prevent circular dependency at startup
-      const { getMe } = await import('../api/auth');
       const userRes = await getMe();
       set({
         user: {

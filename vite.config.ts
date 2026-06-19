@@ -8,6 +8,21 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  build: {
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // React core
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          // Animation libs
+          'vendor-animation': ['framer-motion', 'gsap'],
+          // UI & utilities
+          'vendor-ui': ['lucide-react', 'canvas-confetti', 'axios', 'zustand'],
+        },
+      },
+    },
+  },
   test: {
     globals: true,
     environment: 'happy-dom',
