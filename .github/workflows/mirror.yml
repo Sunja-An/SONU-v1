@@ -1,18 +1,52 @@
-name: Mirror to Personal Repository for Vercel Deployment
+name: Build & Mirror to Personal Repository
 
 on:
   push:
     branches:
-      - main # main 브랜치에 푸시될 때마다 실행
+      - main
 
 jobs:
-  mirror:
+  # ─── Job 1: Build ────────────────────────────────────────────────────────────
+  build:
+    name: Build Check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source Repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # 전체 히스토리를 가져옵니다
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.2.1'
+
+      - name: Install Dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Type Check
+        run: bun run typecheck
+
+      - name: Build
+        run: bun run build
+
+  # ─── Job 2: Mirror (build 성공 시에만 실행) ──────────────────────────────────
+  mirror:
+    name: Mirror to Personal Repository
+    runs-on: ubuntu-latest
+    needs: build          # build job이 성공해야만 실행됩니다
+    if: success()         # build가 실패하면 이 job은 건너뜁니다
+    steps:
+      - name: Checkout Source Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Push to Personal Repository
@@ -24,12 +58,12 @@ jobs:
             echo "Please set up the repository secret 'GHCR_PAT' with your Personal Access Token."
             exit 1
           fi
-          
+
           # github.actor는 이 액션을 실행한 유저(예: 본인 아이디)를 나타냅니다.
           # 개인 계정에 포크/생성한 레포지토리 이름이 SONU-v1 이라고 가정합니다.
           # 만약 이름이 다르다면 아래의 SONU-v1 부분을 수정해 주세요.
           TARGET_URL="https://${{ github.actor }}:${PAT}@github.com/${{ github.actor }}/SONU-v1.git"
-          
+
           # 타겟 레포지토리를 원격으로 추가하고 강제 푸시합니다.
           git remote add destination "$TARGET_URL"
           git push destination main:main -f
