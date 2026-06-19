@@ -65,7 +65,7 @@ const TOURNAMENTS = [
 ];
 
 export function TournamentList() {
-  const { t, lang } = useTranslation();
+  const { t } = useTranslation();
   const [currentSlide, setCurrentSlide] = useState(0);
   const slideRef = useRef<HTMLDivElement>(null);
   

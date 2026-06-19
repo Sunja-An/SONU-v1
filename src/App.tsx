@@ -14,13 +14,13 @@
  */
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { I18nProvider } from './i18n';
-import { LandingPage } from './pages/LandingPage';
 import { AuctionRoom } from './pages/AuctionRoom';
 import { Login } from './pages/Login';
 import { TournamentList } from './pages/TournamentList';
 import { TournamentApplication } from './pages/TournamentApplication';
 import { ProfileRegistration } from './pages/ProfileRegistration';
 import { ProfilePreview } from './pages/ProfilePreview';
+import { Contests } from './pages/Contests';
 /* ── ADMIN Imports ─────────────────────────────── */
 import { AdminLayout } from './components/admin/AdminLayout';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
@@ -30,6 +30,7 @@ import { UserManagement } from './pages/admin/UserManagement';
 import { TournamentUsers } from './pages/admin/TournamentUsers';
 import { AuctionManagement } from './pages/admin/AuctionManagement';
 import { PanelManagement } from './pages/admin/PanelManagement';
+import { TeamManagement } from './pages/admin/TeamManagement';
 
 
 /* ── JP 섹션 ─────────────────────────────────── */
@@ -37,7 +38,7 @@ function JpRoutes() {
   return (
     <I18nProvider lang="jp">
       <Routes>
-        <Route index element={<LandingPage />} />
+        <Route index element={<TournamentApplication />} />
         <Route path="register" element={<ProfileRegistration />} />
         <Route path="leader-register" element={<ProfileRegistration />} /> {/* 추후 분리 예정 */}
         <Route path="profile" element={<ProfilePreview />} />
@@ -45,6 +46,7 @@ function JpRoutes() {
         <Route path="login" element={<Login />} />
         <Route path="tournaments" element={<TournamentList />} />
         <Route path="apply/:tournamentId" element={<TournamentApplication />} />
+        <Route path="contests" element={<Contests />} />
         <Route path="*" element={<Navigate to="/jp" replace />} />
       </Routes>
     </I18nProvider>
@@ -61,6 +63,7 @@ function AdminRoutes() {
         <Route path="tournaments" element={<TournamentManagement />} />
         <Route path="users" element={<UserManagement />} />
         <Route path="tournaments/:tournamentId/users" element={<TournamentUsers />} />
+        <Route path="tournaments/:tournamentId/teams" element={<TeamManagement />} />
         <Route path="auctions" element={<AuctionManagement />} />
         <Route path="panels" element={<PanelManagement />} />
       </Route>

@@ -1,13 +1,10 @@
 import { useEffect } from 'react';
 import gsap from 'gsap';
 import { PlayerCard } from '../components/auction/PlayerCard';
-import { CountdownTimer } from '../components/auction/CountdownTimer';
 import { BidPanel } from '../components/auction/BidPanel';
 import { BidLog } from '../components/auction/BidLog';
 import { TeamRosterBoard } from '../components/sidebar/TeamRosterBoard';
 import { useRoomStore, selectAuction } from '../store/roomStore';
-import { useAuctionTimer } from '../hooks/useAuctionTimer';
-import { useTranslation } from '../i18n';
 
 import { ShuffleRevealOverlay } from '../components/auction/ShuffleRevealOverlay';
 import { UpcomingPlayers } from '../components/auction/UpcomingPlayers';
@@ -39,9 +36,7 @@ import { RemainingList } from '../components/auction/RemainingList';
  * - 'auction_end'    → endAuction()
  */
 export function AuctionRoom() {
-  const { t } = useTranslation();
   const auction = useRoomStore(selectAuction);
-  const playerPool = useRoomStore((s) => s.playerPool);
 
   // CountdownTimer 컴포넌트 내부에서 useAuctionTimer 훅을 사용하므로 여기서 제거하여 2번씩 렌더링/초기화되는 버그 방지
 

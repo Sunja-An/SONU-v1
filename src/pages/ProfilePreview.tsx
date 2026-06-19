@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { Shield, Crosshair, Eye, Cloud, Edit3, ArrowLeft } from 'lucide-react';
+import { Shield, Crosshair, Eye, Cloud, Edit3 } from 'lucide-react';
 import { NavBar } from '../components/common/NavBar';
 
 const VALORANT_ROLES = [

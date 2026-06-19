@@ -2,11 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { useRoomStore, selectAuction, selectMyTeam, selectIsMyTeamHighest } from '../../store/roomStore';
 import { useTranslation } from '../../i18n';
-import { Plus, Minus, TrendingUp, CheckCircle } from 'lucide-react';
+import { TrendingUp, CheckCircle } from 'lucide-react';
 import { CountdownTimer } from './CountdownTimer';
-
-// Quick bid increment options
-const QUICK_BID_AMOUNTS = [50, 100, 200];
 
 /**
  * BidPanel
@@ -40,13 +37,6 @@ export function BidPanel() {
 
   // 다음 최소 입찰가
   const minNextBid = auction.currentHighestBid + auction.minBidIncrement;
-
-  const handleQuickBid = (increment: number) => {
-    if (!myTeam || !canBid) return;
-    const amount = auction.currentHighestBid + increment;
-    if (amount > myTeam.remainingPoints) return;
-    placeBid(myTeam.id, amount);
-  };
 
   const handleCustomBid = () => {
     if (!myTeam || !canBid) return;

@@ -30,7 +30,7 @@ const INITIAL_BANNERS: Banner[] = [
 ];
 
 export function BannerManagement() {
-  const [banners, setBanners] = useState<Banner[]>(INITIAL_BANNERS);
+  const [banners] = useState<Banner[]>(INITIAL_BANNERS);
 
   return (
     <div>

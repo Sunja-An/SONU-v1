@@ -1,7 +1,5 @@
-import { useEffect, useRef } from 'react';
 import { useRoomStore, selectBidLog } from '../../store/roomStore';
 import { useTranslation } from '../../i18n';
-import { TrendingUp } from 'lucide-react';
 
 /**
  * BidLog

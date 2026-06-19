@@ -133,7 +133,7 @@ export const useRoomStore = create<RoomStore>()(
     endAuction: (soldToTeamId) => {
       set((state) => {
         let newTeams = state.teams;
-        let newAuction = { ...state.auction, status: soldToTeamId ? 'sold' : 'no_bid' as const };
+        let newAuction = { ...state.auction, status: (soldToTeamId ? 'sold' : 'no_bid') as 'sold' | 'no_bid' };
 
         if (soldToTeamId && state.auction.currentPlayer) {
           const teamIndex = newTeams.findIndex(t => t.id === soldToTeamId);

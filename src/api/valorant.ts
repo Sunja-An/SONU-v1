@@ -16,11 +16,18 @@ interface ApiResponse {
   data: ValorantAgent[];
 }
 
+// Local memory cache for Valorant agents and roles by language
+const valorantCache: Record<string, { agents: ValorantAgent[]; roles: ValorantRole[] }> = {};
+
 /**
  * Fetches playable agents and extracts roles from valorant-api.com
  * @param lang - 'kr' or 'jp' from the app's routing
  */
 export async function fetchValorantData(lang: 'kr' | 'jp') {
+  if (valorantCache[lang]) {
+    return valorantCache[lang];
+  }
+
   const apiLang = lang === 'kr' ? 'ko-KR' : 'ja-JP';
   const url = `https://valorant-api.com/v1/agents?isPlayableCharacter=true&language=${apiLang}`;
 
@@ -40,8 +47,10 @@ export async function fetchValorantData(lang: 'kr' | 'jp') {
     });
     
     const roles = Array.from(roleMap.values());
+    const valorantData = { agents, roles };
+    valorantCache[lang] = valorantData;
     
-    return { agents, roles };
+    return valorantData;
   } catch (error) {
     console.error('Error fetching valorant data:', error);
     return { agents: [], roles: [] };

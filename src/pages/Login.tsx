@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from '../i18n';
-import { NavBar } from '../components/common/NavBar';
 import { getDiscordAuthUrl, discordCallback, getMe } from '../api/auth';
 import { useAuthStore } from '../store/authStore';
 import { Loader2, AlertCircle } from 'lucide-react';
@@ -43,8 +42,8 @@ export function Login() {
             callbackData.access_token
           );
 
-          // Redirect to profile registration page
-          navigate(`/${lang}/register`);
+          // Redirect to tournament application / matching form page
+          navigate(`/${lang}`);
         } catch (err: unknown) {
           console.error('Discord callback error:', err);
           setError('Discord OAuth2 Login callback failed. Please try again.');
@@ -73,7 +72,6 @@ export function Login() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#0a0b0f] text-[#f1f5f9] overflow-hidden relative">
-      <NavBar />
       
       {/* Background visual elements */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
@@ -92,7 +90,7 @@ export function Login() {
         />
       </div>
 
-      <main className="flex-1 flex items-center justify-center relative z-10 px-4 mt-16">
+      <main className="flex-1 flex items-center justify-center relative z-10 px-4">
         <div className="w-full max-w-md bg-[#0f1117] border border-white/10 p-8 relative">
           {/* Top-left corner accent */}
           <div className="absolute top-0 left-0 w-8 h-0.5 bg-[#5865F2]" />

@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { useRoomStore, selectAuction } from '../../store/roomStore';
-import type { Player } from '../../types';
 
 export function ShuffleRevealOverlay() {
   const auction = useRoomStore(selectAuction);
@@ -61,7 +60,7 @@ export function ShuffleRevealOverlay() {
         {playerPool.map((player, index) => (
           <div 
             key={player.id}
-            ref={(el) => (cardsRef.current[index] = el)}
+            ref={(el) => { cardsRef.current[index] = el; }}
             className="relative w-32 h-44 bg-slate-900 border border-slate-700 overflow-hidden perspective-1000 transform-style-3d"
           >
             {/* Front (Player info) */}

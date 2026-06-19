@@ -1,25 +1,5 @@
 import { useRoomStore, selectTeams } from '../../store/roomStore';
-import { useTranslation } from '../../i18n';
 import { User, Coins } from 'lucide-react';
-import type { ValorantRole } from '../../types';
-
-// Position to role label mapping (fixed 5-slot roster)
-const POSITION_LABELS: Record<number, ValorantRole> = {
-  1: 'Duelist',
-  2: 'Initiator',
-  3: 'Controller',
-  4: 'Sentinel',
-  5: 'Sentinel',
-};
-
-const ROLE_SHORT: Record<ValorantRole, string> = {
-  Duelist: 'DL',
-  Initiator: 'IN',
-  Controller: 'CT',
-  Sentinel: 'SE',
-};
-
-const INITIAL_POINTS = 1000; // 팀당 초기 포인트
 
 /**
  * TeamRosterBoard
@@ -29,7 +9,6 @@ const INITIAL_POINTS = 1000; // 팀당 초기 포인트
  * TODO: WebSocket 'teams_update' 이벤트 → updateTeams() 호출로 실시간 갱신
  */
 export function TeamRosterBoard() {
-  const { t } = useTranslation();
   const teams = useRoomStore(selectTeams);
   const myTeamId = useRoomStore((s) => s.myTeamId);
 
