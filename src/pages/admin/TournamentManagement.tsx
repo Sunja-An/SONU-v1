@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Plus, Edit2, Users, Search, Trophy, X, Loader2, RefreshCw, Shuffle, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
