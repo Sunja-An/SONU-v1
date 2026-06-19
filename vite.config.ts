@@ -12,13 +12,16 @@ export default defineConfig({
     chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {
-        manualChunks: {
-          // React core
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          // Animation libs
-          'vendor-animation': ['framer-motion', 'gsap'],
-          // UI & utilities
-          'vendor-ui': ['lucide-react', 'canvas-confetti', 'axios', 'zustand'],
+        manualChunks: (id: string) => {
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom') || id.includes('node_modules/react-router-dom')) {
+            return 'vendor-react';
+          }
+          if (id.includes('node_modules/framer-motion') || id.includes('node_modules/gsap')) {
+            return 'vendor-animation';
+          }
+          if (id.includes('node_modules/lucide-react') || id.includes('node_modules/canvas-confetti') || id.includes('node_modules/axios') || id.includes('node_modules/zustand')) {
+            return 'vendor-ui';
+          }
         },
       },
     },
